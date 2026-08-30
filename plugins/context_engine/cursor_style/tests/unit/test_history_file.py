@@ -56,7 +56,7 @@ class TestHistoryFileManager:
             {"role": "user", "content": "Third message"},
         ]
         path = mgr.save(messages, session_id="jsonl-test")
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             lines = f.readlines()
         assert len(lines) == 3
         for line in lines:
@@ -78,7 +78,7 @@ class TestHistoryFileManager:
              "content": "file content here"},
         ]
         path = mgr.save(messages, session_id="tool-test")
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             lines = f.readlines()
         assert len(lines) == 2
         first = json.loads(lines[0])

@@ -58,7 +58,7 @@ jobs:
             BASE_SHA=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
             BASE_REF="origin/${{ github.base_ref }}"
           else
-            BASE_SHA=$(git rev-parse HEAD~1 2>/dev/null || git rev-parse HEAD)
+            BASE_SHA=$(git rev-parse -q --verify HEAD~1 2>/dev/null || git rev-parse HEAD)
             BASE_REF="HEAD~1"
           fi
           echo "sha=${BASE_SHA}" >> "$GITHUB_OUTPUT"

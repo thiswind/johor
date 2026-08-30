@@ -85,6 +85,19 @@ from gateway.platforms.telegram_network import (
 )
 from utils import atomic_replace
 
+# Hard timeouts armouring the polling reconnect ladder (2026-08-30 JOHOR
+# incident: attempt-5 reconnect wedged forever on a poisoned httpx pool;
+# the process stayed alive, systemd saw nothing, polling was dead for 85
+# minutes). Every await in the reconnect ladder can hang indefinitely on
+# a CLOSE-WAIT-poisoned pool — wait_for() guarantees the ladder always
+# advances to fatal → exit 75 → systemd restart. Module-level so tests
+# can patch them.
+TELEGRAM_STOP_TIMEOUT = 30          # updater.stop()
+TELEGRAM_DRAIN_TIMEOUT = 30         # polling pool shutdown/initialize
+TELEGRAM_START_POLLING_TIMEOUT = 60 # start_polling (does network I/O)
+TELEGRAM_CONFLICT_STOP_TIMEOUT = 15 # updater.stop() in conflict path
+TELEGRAM_CONFLICT_RESTART_TIMEOUT = 60  # start_polling() in conflict path
+
 _TELEGRAM_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp", ".gif"}
 _TELEGRAM_IMAGE_MIME_TO_EXT = {
     "image/png": ".png",
@@ -732,16 +745,30 @@ class TelegramAdapter(BasePlatformAdapter):
         except Exception:
             return
         try:
-            await polling_req.shutdown()
+            await asyncio.wait_for(
+                polling_req.shutdown(), TELEGRAM_DRAIN_TIMEOUT
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "[%s] Polling request shutdown timed out after %ds (pool wedged) — forcing re-init",
+                self.name, TELEGRAM_DRAIN_TIMEOUT,
+            )
         except Exception:
             logger.debug(
                 "[%s] Polling request shutdown failed (non-fatal)",
                 self.name, exc_info=True,
             )
         try:
-            await polling_req.initialize()
+            await asyncio.wait_for(
+                polling_req.initialize(), TELEGRAM_DRAIN_TIMEOUT
+            )
             logger.debug(
                 "[%s] Polling request pool drained before reconnect", self.name
+            )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "[%s] Polling request re-initialize timed out after %ds (non-fatal; start_polling will retry)",
+                self.name, TELEGRAM_DRAIN_TIMEOUT,
             )
         except Exception:
             logger.debug(
@@ -790,17 +817,27 @@ class TelegramAdapter(BasePlatformAdapter):
 
         try:
             if self._app and self._app.updater and self._app.updater.running:
-                await self._app.updater.stop()
+                await asyncio.wait_for(
+                    self._app.updater.stop(), TELEGRAM_STOP_TIMEOUT
+                )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "[%s] Updater stop timed out after %ds during reconnect (wedged) — proceeding to pool drain",
+                self.name, TELEGRAM_STOP_TIMEOUT,
+            )
         except Exception:
             pass
 
         await self._drain_polling_connections()
 
         try:
-            await self._app.updater.start_polling(
-                allowed_updates=Update.ALL_TYPES,
-                drop_pending_updates=False,
-                error_callback=self._polling_error_callback_ref,
+            await asyncio.wait_for(
+                self._app.updater.start_polling(
+                    allowed_updates=Update.ALL_TYPES,
+                    drop_pending_updates=False,
+                    error_callback=self._polling_error_callback_ref,
+                ),
+                TELEGRAM_START_POLLING_TIMEOUT,
             )
             logger.info(
                 "[%s] Telegram polling resumed after network error (attempt %d)",
@@ -894,19 +931,32 @@ class TelegramAdapter(BasePlatformAdapter):
             )
             try:
                 if self._app and self._app.updater and self._app.updater.running:
-                    await self._app.updater.stop()
+                    await asyncio.wait_for(
+                        self._app.updater.stop(), TELEGRAM_CONFLICT_STOP_TIMEOUT
+                    )
+            except asyncio.TimeoutError:
+                logger.warning(
+                    "[%s] Updater stop timed out after %ds during conflict retry (wedged) — proceeding to pool drain",
+                    self.name, TELEGRAM_CONFLICT_STOP_TIMEOUT,
+                )
             except Exception:
                 pass
             await asyncio.sleep(RETRY_DELAY)
             await self._drain_polling_connections()
             try:
-                await self._app.updater.start_polling(
-                    allowed_updates=Update.ALL_TYPES,
-                    drop_pending_updates=False,
-                    error_callback=self._polling_error_callback_ref,
+                await asyncio.wait_for(
+                    self._app.updater.start_polling(
+                        allowed_updates=Update.ALL_TYPES,
+                        drop_pending_updates=False,
+                        error_callback=self._polling_error_callback_ref,
+                    ),
+                    TELEGRAM_CONFLICT_RESTART_TIMEOUT,
                 )
                 logger.info("[%s] Telegram polling resumed after conflict retry %d", self.name, self._polling_conflict_count)
                 self._polling_conflict_count = 0  # reset on success
+                return
+            except asyncio.TimeoutError as retry_err:
+                logger.warning("[%s] Telegram polling retry (conflict) timed out after %ds: %s", self.name, TELEGRAM_CONFLICT_RESTART_TIMEOUT, retry_err)
                 return
             except Exception as retry_err:
                 logger.warning("[%s] Telegram polling retry failed: %s", self.name, retry_err)
