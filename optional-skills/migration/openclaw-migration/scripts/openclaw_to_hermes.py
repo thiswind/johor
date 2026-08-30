@@ -403,15 +403,20 @@ def backup_existing(path: Path, backup_root: Path) -> Optional[Path]:
 # Case-preserving: ``OpenClaw`` → ``Johor`` (prose), but lowercase matches
 # like ``openclaw`` → ``hermes`` (so filesystem paths like ``~/.openclaw``
 # become ``~/.hermes`` — the real Johor home — not the broken ``~/.Johor``).
-_REBRAND_PATTERNS: List[Tuple[re.Pattern, str]] = [
-    (re.compile(r'\bOpen[\s-]?Claw\b', re.IGNORECASE), 'Johor'),
-    (re.compile(r'\bClawdBot\b', re.IGNORECASE), 'Johor'),
-    (re.compile(r'\bMoltBot\b', re.IGNORECASE), 'Johor'),
+_REBRAND_PATTERNS: List[Tuple[re.Pattern, str, str]] = [
+    # (pattern, display replacement, lowercase replacement). Lowercase
+    # matches map to 'hermes' so filesystem paths like
+    # ~/.openclaw/config.yaml rewrite to ~/.hermes/config.yaml — the real
+    # Johor home (see --target default below). Display-case matches become
+    # 'Johor', the public product name.
+    (re.compile(r'\bOpen[\s-]?Claw\b', re.IGNORECASE), 'Johor', 'hermes'),
+    (re.compile(r'\bClawdBot\b', re.IGNORECASE), 'Johor', 'hermes'),
+    (re.compile(r'\bMoltBot\b', re.IGNORECASE), 'Johor', 'hermes'),
 ]
 
 
-def _case_preserving_replacement(replacement: str):
-    """Return a re.sub replacement fn that lowercases the result when the
+def _case_preserving_replacement(display: str, lower: str):
+    """Return a re.sub replacement fn that emits the lowercase form when the
     matched text was all-lowercase.
 
     Keeps ``OpenClaw`` → ``Johor`` but maps ``openclaw`` → ``hermes`` so a
@@ -422,8 +427,8 @@ def _case_preserving_replacement(replacement: str):
     def _sub(match: "re.Match[str]") -> str:
         matched = match.group(0)
         if matched and matched.islower():
-            return replacement.lower()
-        return replacement
+            return lower
+        return display
     return _sub
 
 
@@ -433,8 +438,8 @@ def rebrand_text(text: str) -> str:
     Preserves case so filesystem-path matches (lowercase) don't become
     capitalized directory names that don't exist.
     """
-    for pattern, replacement in _REBRAND_PATTERNS:
-        text = pattern.sub(_case_preserving_replacement(replacement), text)
+    for pattern, display, lower in _REBRAND_PATTERNS:
+        text = pattern.sub(_case_preserving_replacement(display, lower), text)
     return text
 
 

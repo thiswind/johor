@@ -67,6 +67,10 @@ def _ensure_discord_mock():
     discord_mod.Thread = type("Thread", (), {})
     discord_mod.ForumChannel = type("ForumChannel", (), {})
     discord_mod.Interaction = object
+    # `except discord.Forbidden:` in DiscordAdapter requires a real exception
+    # class — a MagicMock attribute would raise
+    # "TypeError: catching classes that do not inherit from BaseException".
+    discord_mod.Forbidden = type("Forbidden", (Exception,), {})
     discord_mod.app_commands = SimpleNamespace(
         describe=lambda **kwargs: (lambda fn: fn),
         choices=lambda **kwargs: (lambda fn: fn),

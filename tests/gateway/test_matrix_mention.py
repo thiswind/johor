@@ -95,7 +95,7 @@ class TestIsBotMentioned:
         assert self.adapter._is_bot_mentioned("hermes can you help?")
 
     def test_localpart_case_insensitive(self):
-        assert self.adapter._is_bot_mentioned("JOHOR can you help?")
+        assert self.adapter._is_bot_mentioned("HERMES can you help?")
 
     def test_matrix_pill_in_formatted_body(self):
         html = '<a href="https://matrix.to/#/@hermes:example.org">Johor</a> help'

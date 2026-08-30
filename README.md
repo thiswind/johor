@@ -23,6 +23,15 @@ Telegram <-> Gateway <-> Agent Core <-> capability providers
 
 The gateway receives Telegram updates and drives the agent's conversation loop: tools, skills, memory, and the context engine. Capability providers (vision, image generation, search, extraction, speech) plug in behind the core, each with its own key — bring your own keys, keep them in `config.yaml` + environment variables, and never commit them.
 
+## Install
+
+Run the installer for your platform from a clone of this repo:
+
+- **Linux / macOS / Termux** — `scripts/install.sh` (uses [uv](https://docs.astral.sh/uv/) to provision Python and dependencies)
+- **Windows** — `scripts/install.ps1` in PowerShell (same flow, native Windows support)
+
+Both scripts create an isolated environment, install the agent with its dependencies, and run first-time setup. They also accept flags (`--no-venv`, `--skip-setup` / `-NoVenv`, `-SkipSetup`) for custom setups.
+
 ## Deployment
 
 ![Deployment flow](assets/deployment.svg)
