@@ -1,5 +1,7 @@
 # JOHOR Agent
 
+[English](README.md) · [中文](README.zh-CN.md) · [العربية](README.ar.md)
+
 A single-user personal AI agent, purpose-built for **Telegram**.
 
 JOHOR talks with one designated user — conversation with a persistent persona, vision, image generation, web search, voice in and out, music on request, scheduled jobs, and a growing skill system. It ships as one repository you can clone, configure, and run.
