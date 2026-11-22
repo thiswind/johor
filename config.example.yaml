@@ -1,0 +1,61 @@
+# JOHOR Agent — example configuration
+# Copy to ~/.hermes/config.yaml. Secrets NEVER live here — they go in ~/.hermes/.env
+# (key list at the bottom). Below: public defaults only (endpoints, models, switches).
+
+model:
+  provider: custom            # any OpenAI- or Anthropic-compatible endpoint
+  base_url: https://api.anthropic.com   # or your OpenRouter / apinexus endpoint
+  default: claude-opus-5      # see README "Model requirements" for the minimum bar
+  api_mode: anthropic_messages
+  api_key: ""                 # leave empty; value comes from .env
+  max_output_tokens: 128000
+  supports_vision: false
+
+auxiliary:
+  vision:
+    provider: custom
+    base_url: https://openrouter.ai/api/v1
+    model: glm-5.3-flash
+    api_key: ""
+
+web:
+  search_backend: perplexity   # first-class backend; do not change lightly
+  backend: tavily              # page extraction
+
+image_gen:
+  provider: openai
+  model: gpt-image-2
+
+stt:
+  enabled: true
+  provider: openai
+  openai:
+    base_url: https://openrouter.ai/api/v1
+    model: scribe_v3
+
+tts:
+  provider: openai
+  openai:
+    base_url: https://openrouter.ai/api/v1
+    model: eleven_v4
+    voice: 21m00Tcm4TlvDq8ikWAM
+
+music:
+  provider: suno
+  base_url: ""                 # your Suno-compatible endpoint, from .env if needed
+
+context:
+  engine: cursor_style         # built-in default
+
+telegram:
+  reactions: false
+
+# Keys expected in ~/.hermes/.env:
+#   TELEGRAM_BOT_TOKEN      from @BotFather
+#   TELEGRAM_ALLOWED_USERS  your numeric Telegram user ID
+#   ANTHROPIC_API_KEY       or the key of your chosen main-model provider
+#   OPENROUTER_API_KEY      if using OpenRouter for auxiliary/vision/STT/TTS
+#   PERPLEXITY_API_KEY      web search (required)
+#   TAVILY_API_KEY          page extraction (optional)
+#   OPENAI_API_KEY          image generation
+#   SUNO_API_KEY            music generation (optional)

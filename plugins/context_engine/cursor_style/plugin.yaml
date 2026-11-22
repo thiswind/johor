@@ -1,0 +1,9 @@
+name: cursor_style
+version: "0.1.0"
+description: >
+  Cursor-inspired context compression engine. Fixes topic drift by not
+  anchoring initial conversations, uses minimal summarization prompts,
+  history file mechanism for detail recovery, and precise multi-language
+  token counting.
+author: "cursor-compressor contributors"
+license: MIT

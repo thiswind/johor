@@ -1,0 +1,18 @@
+{
+  "version": "v0.21.0",
+  "installed_at": "2026-08-29 21:51:57",
+  "source": "cursor-agent-team",
+  "platform": "trae_solo",
+  "files": [
+    ".trae/skills/cursor-agent-team-discuss/SKILL.md",
+    ".trae/skills/cursor-agent-team-crew/SKILL.md",
+    ".trae/skills/cursor-agent-team-prompt_engineer/SKILL.md",
+    ".trae/skills/cursor-agent-team-writer/SKILL.md",
+    ".trae/skills/cursor-agent-team-workflow/SKILL.md",
+    ".trae/commands/discuss.md",
+    ".trae/commands/crew.md",
+    ".trae/commands/prompt_engineer.md",
+    ".trae/commands/writer.md",
+    ".trae/commands/workflow.md"
+  ]
+}
